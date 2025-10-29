@@ -1,0 +1,11 @@
+# Node.js
+node_modules/
+uploads/
+
+# Ambiente
+.env
+sistema-de-doacao-firebase-adminsdk-fbsvc-61512bbee1.json
+
+# Sistema
+.DS_Store
+.vercel
