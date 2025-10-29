@@ -4,16 +4,33 @@ const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
+const streamifier = require('streamifier');
 const cloudinary = require('../config/cloudinary');
 const { db } = require('../config/firebase');
 const autenticarToken = require('../middlewares/autenticarToken');
 
-const upload = multer({ dest: 'uploads/' });
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-// ✅ Rota de cadastro
+// ✅ Configura o multer para armazenar em memória (compatível com Vercel)
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Função auxiliar para enviar buffer ao Cloudinary
+async function uploadToCloudinary(buffer) {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { folder: 'doacoes' },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }
+    );
+    streamifier.createReadStream(buffer).pipe(uploadStream);
+  });
+}
+
+// ✅ Cadastro de usuário
 app.post('/signup', async (req, res) => {
   const { cargo, nome, email, telefone, identidade, endereco, cidade, estado, cep, senha } = req.body;
 
@@ -60,6 +77,7 @@ app.post('/login', async (req, res) => {
     const token = jwt.sign({ id: userDoc.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.json({ message: 'Login bem-sucedido', token });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Erro no servidor' });
   }
 });
@@ -83,11 +101,12 @@ app.put('/usuarios/:id', autenticarToken, async (req, res) => {
     await userRef.update(dados);
     res.json({ message: 'Perfil atualizado com sucesso!' });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Erro ao atualizar perfil' });
   }
 });
 
-// ✅ Cadastro de doação
+// ✅ Cadastro de doação (com Cloudinary e memória)
 app.post('/doacoes', autenticarToken, upload.single('foto'), async (req, res) => {
   const { titulo, descricao, categoria, localizacao } = req.body;
   const usuario_id = req.user.id;
@@ -98,7 +117,7 @@ app.post('/doacoes', autenticarToken, upload.single('foto'), async (req, res) =>
   try {
     let fotoUrl = null;
     if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path);
+      const result = await uploadToCloudinary(req.file.buffer);
       fotoUrl = result.secure_url;
     }
 
@@ -114,7 +133,7 @@ app.post('/doacoes', autenticarToken, upload.single('foto'), async (req, res) =>
 
     res.json({ message: 'Doação cadastrada com sucesso!' });
   } catch (error) {
-    console.error(error);
+    console.error('Erro no upload:', error);
     res.status(500).json({ message: 'Erro ao cadastrar doação' });
   }
 });
@@ -188,7 +207,7 @@ app.put('/doacoes/:id', autenticarToken, upload.single('foto'), async (req, res)
 
     let fotoUrl = doacao.foto;
     if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path);
+      const result = await uploadToCloudinary(req.file.buffer);
       fotoUrl = result.secure_url;
     }
 
@@ -208,8 +227,9 @@ app.put('/doacoes/:id', autenticarToken, upload.single('foto'), async (req, res)
   }
 });
 
+// ✅ Inicialização do servidor (local ou Vercel)
 app.listen(process.env.PORT || 3000, () => {
   console.log(`🚀 Servidor rodando na porta ${process.env.PORT || 3000}`);
 });
 
-module.exports = app; // importante para vercel
+module.exports = app; // obrigatório para Vercel
