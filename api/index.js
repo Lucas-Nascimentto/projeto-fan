@@ -11,7 +11,13 @@ const autenticarToken = require('../middlewares/autenticarToken');
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+const corsOptions = {
+  origin: ['http://127.0.0.1:5500', 'http://localhost:5500'], // front local
+  methods: ['GET','POST','PUT','DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
 
 // ✅ Configura o multer para armazenar em memória (compatível com Vercel)
 const upload = multer({ storage: multer.memoryStorage() });
