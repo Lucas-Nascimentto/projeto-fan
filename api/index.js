@@ -232,9 +232,9 @@ app.put('/doacoes/:id', autenticarToken, upload.single('foto'), async (req, res)
   }
 });
 
-// ✅ Inicialização do servidor (local ou Vercel)
-app.listen(process.env.PORT || 3000, () => {
-  console.log(`🚀 Servidor rodando na porta ${process.env.PORT || 3000}`);
-});
+// // ✅ Inicialização do servidor (local ou Vercel)
+// app.listen(process.env.PORT || 3000, () => {
+//   console.log(`🚀 Servidor rodando na porta ${process.env.PORT || 3000}`);
+// });
 
 module.exports = app; // obrigatório para Vercel
