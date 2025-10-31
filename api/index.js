@@ -11,12 +11,12 @@ const autenticarToken = require('../middlewares/autenticarToken');
 
 const app = express();
 app.use(express.json());
-const corsOptions = {
-  origin: '*',
-  methods: ['GET','POST','PUT','DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
-app.use(cors(corsOptions));
+// const corsOptions = {
+//   origin: '*',
+//   methods: ['GET','POST','PUT','DELETE'],
+//   allowedHeaders: ['Content-Type', 'Authorization']
+// };
+// app.use(cors(corsOptions));
 
 // ✅ Configura o multer para armazenar em memória (compatível com Vercel)
 const upload = multer({ storage: multer.memoryStorage() });
