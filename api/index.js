@@ -1,13 +1,13 @@
-require('dotenv').config({ path: '../.env' });
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const streamifier = require('streamifier');
-const cloudinary = require('../config/cloudinary');
-const { db } = require('../config/firebase');
-const autenticarToken = require('../middlewares/autenticarToken');
+const cloudinary = require('./config/cloudinary');
+const { db } = require('./config/firebase');
+const autenticarToken = require('./middlewares/autenticarToken');
 
 const app = express();
 app.use(express.json());
