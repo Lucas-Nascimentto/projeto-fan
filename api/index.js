@@ -144,7 +144,7 @@ app.post('/doacoes', autenticarToken, upload.single('foto'), async (req, res) =>
 });
 
 // ✅ Histórico de doações
-app.get('/doacoes/historico', autenticarToken, async (req, res) => {
+app.get('/api/doacoes/historico', autenticarToken, async (req, res) => {
   const usuario_id = req.user.id;
 
   try {
