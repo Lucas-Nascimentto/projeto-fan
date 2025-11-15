@@ -34,7 +34,7 @@ async function uploadToCloudinary(buffer) {
     streamifier.createReadStream(buffer).pipe(uploadStream);
   });
 }
-
+//ok
 // ✅ Cadastro de usuário
 app.post('/signup', async (req, res) => {
   const { cargo, nome, email, telefone, identidade, endereco, cidade, estado, cep, senha } = req.body;
@@ -61,7 +61,7 @@ app.post('/signup', async (req, res) => {
     res.status(500).json({ message: 'Erro ao cadastrar usuário' });
   }
 });
-
+//ok
 // ✅ Login
 app.post('/login', async (req, res) => {
   const { email, senha } = req.body;
@@ -86,7 +86,7 @@ app.post('/login', async (req, res) => {
     res.status(500).json({ message: 'Erro no servidor' });
   }
 });
-
+//ok
 // ✅ Atualizar perfil
 app.put('/usuarios/:id', autenticarToken, async (req, res) => {
   const userId = req.params.id;
@@ -110,14 +110,15 @@ app.put('/usuarios/:id', autenticarToken, async (req, res) => {
     res.status(500).json({ message: 'Erro ao atualizar perfil' });
   }
 });
-
+//ok
 // ✅ Cadastro de doação (com Cloudinary e memória)
 app.post('/doacoes', autenticarToken, upload.single('foto'), async (req, res) => {
-  const { titulo, descricao, categoria, localizacao } = req.body;
+  const { titulo, descricao, categoria, localizacao, cidade, estado } = req.body;
   const usuario_id = req.user.id;
 
-  if (!titulo || !descricao || !categoria || !localizacao)
-    return res.status(400).json({ message: 'Todos os campos obrigatórios devem ser preenchidos' });
+  if (!titulo || !descricao || !categoria || !localizacao || !cidade || !estado) {
+    return res.status(400).json({ message: 'Todos os campos obrigatórios devem ser preenchidos (titulo, descricao, categoria, localizacao, cidade, estado)' });
+  }
 
   try {
     let fotoUrl = null;
@@ -132,6 +133,8 @@ app.post('/doacoes', autenticarToken, upload.single('foto'), async (req, res) =>
       descricao,
       categoria,
       localizacao,
+      cidade,
+      estado,
       foto: fotoUrl,
       createdAt: new Date()
     });
@@ -142,7 +145,7 @@ app.post('/doacoes', autenticarToken, upload.single('foto'), async (req, res) =>
     res.status(500).json({ message: 'Erro ao cadastrar doação' });
   }
 });
-
+//ok
 // ✅ Histórico de doações
 app.get('/api/doacoes/historico', autenticarToken, async (req, res) => {
   const usuario_id = req.user.id;
@@ -164,7 +167,7 @@ app.get('/api/doacoes/historico', autenticarToken, async (req, res) => {
     res.status(500).json({ message: 'Erro ao buscar histórico de doações' });
   }
 });
-
+//ok
 // ✅ Excluir doação
 app.delete('/doacoes/:id', autenticarToken, async (req, res) => {
   const doacaoId = req.params.id;
@@ -190,12 +193,12 @@ app.delete('/doacoes/:id', autenticarToken, async (req, res) => {
     res.status(500).json({ message: 'Erro ao excluir doação' });
   }
 });
-
+//ok
 // ✅ Editar doação
 app.put('/doacoes/:id', autenticarToken, upload.single('foto'), async (req, res) => {
   const doacaoId = req.params.id;
   const usuario_id = req.user.id;
-  const { titulo, descricao, categoria, localizacao } = req.body;
+  const { titulo, descricao, categoria, localizacao, cidade, estado } = req.body;
 
   try {
     const doacaoRef = db.collection('doacoes').doc(doacaoId);
@@ -210,6 +213,10 @@ app.put('/doacoes/:id', autenticarToken, upload.single('foto'), async (req, res)
       return res.status(403).json({ message: 'Você não tem permissão para editar esta doação' });
     }
 
+    // Mantém os valores atuais caso não sejam enviados no body
+    const novoCidade = (typeof cidade !== 'undefined' && cidade !== null) ? cidade : doacao.cidade || null;
+    const novoEstado = (typeof estado !== 'undefined' && estado !== null) ? estado : doacao.estado || null;
+
     let fotoUrl = doacao.foto;
     if (req.file) {
       const result = await uploadToCloudinary(req.file.buffer);
@@ -217,10 +224,13 @@ app.put('/doacoes/:id', autenticarToken, upload.single('foto'), async (req, res)
     }
 
     await doacaoRef.update({
-      titulo,
-      descricao,
-      categoria,
-      localizacao,
+      // atualiza apenas os campos que vieram — se quiser evitar sobrescrever com undefined, faz assim:
+      ...(typeof titulo !== 'undefined' && { titulo }),
+      ...(typeof descricao !== 'undefined' && { descricao }),
+      ...(typeof categoria !== 'undefined' && { categoria }),
+      ...(typeof localizacao !== 'undefined' && { localizacao }),
+      cidade: novoCidade,
+      estado: novoEstado,
       foto: fotoUrl,
       updatedAt: new Date()
     });
@@ -231,10 +241,136 @@ app.put('/doacoes/:id', autenticarToken, upload.single('foto'), async (req, res)
     res.status(500).json({ message: 'Erro ao atualizar doação' });
   }
 });
+//ok
+// 📌 Solicitar uma doação
+app.post('/solicitacoes', autenticarToken, async (req, res) => {
+  const { doacao_id, motivo } = req.body;
+  const usuario_id = req.user.id;
 
-// // ✅ Inicialização do servidor (local ou Vercel)
-// app.listen(process.env.PORT || 3000, () => {
-//   console.log(`🚀 Servidor rodando na porta ${process.env.PORT || 3000}`);
-// });
+  if (!doacao_id || !motivo) {
+    return res.status(400).json({ message: 'Doação e motivo são obrigatórios' });
+  }
 
-module.exports = app; // obrigatório para Vercel
+  try {
+    const doacaoRef = db.collection('doacoes').doc(doacao_id);
+    const doc = await doacaoRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ message: 'Doação não encontrada' });
+    }
+
+    // salva solicitação
+    await db.collection('solicitacoes').add({
+      doacao_id,
+      receptor_id: usuario_id,
+      motivo,
+      status: 'pendente',
+      createdAt: new Date()
+    });
+
+    res.json({ message: 'Solicitação enviada com sucesso!' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao solicitar doação' });
+  }
+});
+//ok
+// 📌 Histórico de solicitações do receptor
+app.get('/solicitacoes/historico', autenticarToken, async (req, res) => {
+  const usuario_id = req.user.id;
+
+  try {
+    const snapshot = await db.collection('solicitacoes')
+      .where('receptor_id', '==', usuario_id)
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    const solicitacoes = [];
+
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+
+      // busca dados da doação referenciada
+      const doacaoDoc = await db.collection('doacoes').doc(data.doacao_id).get();
+
+      solicitacoes.push({
+        id: doc.id,
+        ...data,
+        doacao: doacaoDoc.exists ? doacaoDoc.data() : null
+      });
+    }
+
+    res.json(solicitacoes);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao buscar histórico de solicitações' });
+  }
+});
+//ok
+// 📌 Listar todas as doações disponíveis
+app.get('/doacoes', autenticarToken, async (req, res) => {
+  const usuario_id = req.user.id;
+
+  try {
+    const snapshot = await db.collection('doacoes')
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    const doacoes = snapshot.docs
+      .filter(doc => doc.data().usuario_id !== usuario_id)
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+    res.json(doacoes);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao buscar doações disponíveis' });
+  }
+});
+//ok
+// 📌 Filtrar e ordenar doações
+app.get('/doacoes/filtrar', autenticarToken, async (req, res) => {
+  const { categoria, cidade, estado, ordenar } = req.query;
+  const usuario_id = req.user.id;
+
+  try {
+    let query = db.collection('doacoes');
+
+    if (categoria) query = query.where('categoria', '==', categoria);
+    if (cidade) query = query.where('cidade', '==', cidade);
+    if (estado) query = query.where('estado', '==', estado);
+
+
+    const snapshot = await query.get();
+
+    let doacoes = snapshot.docs
+      .filter(doc => doc.data().usuario_id !== usuario_id)
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+    // Ordenação
+    if (ordenar === 'recente') {
+      doacoes.sort((a, b) => b.createdAt.toDate() - a.createdAt.toDate());
+    } else if (ordenar === 'antiga') {
+      doacoes.sort((a, b) => a.createdAt.toDate() - b.createdAt.toDate());
+    }
+
+    res.json(doacoes);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao filtrar doações' });
+  }
+});
+
+
+
+// ✅ Inicialização do servidor (local ou Vercel)
+app.listen(process.env.PORT || 3000, () => {
+  console.log(`🚀 Servidor rodando na porta ${process.env.PORT || 3000}`);
+});
+
+// module.exports = app; // obrigatório para Vercel
