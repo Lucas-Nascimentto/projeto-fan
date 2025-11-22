@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Doações</title>
+    <link rel="stylesheet" href="../css/styleCadastro.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Criar Conta</h1>
+        <p class="subtitle">Preencha os dados para se cadastrar</p>
+
+        <div id="alert" class="alert"></div>
+
+        <form id="signupForm">
+            <div class="form-group">
+                <label for="cargo">Cargo/Tipo de Usuário *</label>
+                <select id="cargo" name="cargo" required>
+                    <option value="doador">Doador</option>
+                    <option value="receptor">Receptor</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="nome">Nome Completo *</label>
+                    <input type="text" id="nome" name="nome" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email *</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="telefone">Telefone *</label>
+                    <input type="tel" id="telefone" name="telefone" placeholder="(00) 00000-0000" required>
+                </div>
+                <div class="form-group">
+                    <label for="identidade">CPF *</label>
+                    <input type="text" id="identidade" name="identidade" placeholder="000.000.000-00" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="endereco">Endereço *</label>
+                <input type="text" id="endereco" name="endereco" placeholder="Rua, número, complemento" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="cidade">Cidade *</label>
+                    <input type="text" id="cidade" name="cidade" required>
+                </div>
+                <div class="form-group">
+                    <label for="estado">Estado *</label>
+                    <input type="text" id="estado" name="estado" placeholder="BA" maxlength="2" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="cep">CEP *</label>
+                    <input type="text" id="cep" name="cep" placeholder="00000-000" required>
+                </div>
+                <div class="form-group">
+                    <label for="senha">Senha *</label>
+                    <input type="password" id="senha" name="senha" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn">Cadastrar</button>
+        </form>
+
+        <div class="switch-form">
+            Já tem uma conta? <a href="index.html">Faça login</a>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000';
+
+        // Máscaras para inputs
+        document.getElementById('telefone').addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length <= 11) {
+                value = value.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
+                value = value.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3');
+                value = value.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+                e.target.value = value;
+            }
+        });
+
+        document.getElementById('identidade').addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length <= 11) {
+                value = value.replace(/^(\d{3})(\d{3})(\d{3})(\d{2}).*/, '$1.$2.$3-$4');
+                value = value.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2}).*/, '$1.$2.$3-$4');
+                value = value.replace(/^(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+                value = value.replace(/^(\d{3})(\d{0,3})/, '$1.$2');
+                e.target.value = value;
+            }
+        });
+
+        document.getElementById('cep').addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length <= 8) {
+                value = value.replace(/^(\d{5})(\d{3}).*/, '$1-$2');
+                e.target.value = value;
+            }
+        });
+
+        document.getElementById('signupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                cargo: document.getElementById('cargo').value,
+                nome: document.getElementById('nome').value,
+                email: document.getElementById('email').value,
+                telefone: document.getElementById('telefone').value,
+                identidade: document.getElementById('identidade').value,
+                endereco: document.getElementById('endereco').value,
+                cidade: document.getElementById('cidade').value,
+                estado: document.getElementById('estado').value.toUpperCase(),
+                cep: document.getElementById('cep').value,
+                senha: document.getElementById('senha').value
+            };
+
+            const alertDiv = document.getElementById('alert');
+
+            try {
+                const response = await fetch(`${API_URL}/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alertDiv.className = 'alert success';
+                    alertDiv.textContent = 'Cadastro realizado com sucesso! Redirecionando...';
+                    alertDiv.style.display = 'block';
+
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 2000);
+                } else {
+                    alertDiv.className = 'alert error';
+                    alertDiv.textContent = data.message || 'Erro ao cadastrar';
+                    alertDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alertDiv.className = 'alert error';
+                alertDiv.textContent = 'Erro ao conectar com o servidor';
+                alertDiv.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

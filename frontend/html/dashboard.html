@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Doações</title>
+    <link rel="stylesheet" href="../css/styleDashboard.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-brand">💝 DoaSolidário</div>
+        <div class="navbar-menu">
+            <button class="nav-btn" onclick="showTab('doacoes')">Explorar</button>
+            <button class="nav-btn" onclick="showTab('minhas')">Minhas Doações</button>
+            <button class="nav-btn" onclick="showTab('solicitacoes')">Solicitações</button>
+            <button class="nav-btn primary" onclick="openModal('nova')">➕ Nova Doação</button>
+            <button class="nav-btn" onclick="openModalPerfil()">Editar Perfil</button>
+            <button class="nav-btn" onclick="logout()">Sair</button>
+        </div>
+    </nav>
+
+    <!-- Container Principal -->
+    <div class="container">
+        <!-- Filtros -->
+        <div class="filters" id="filtrosSection">
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label>Categoria</label>
+                    <select id="filtroCategoria">
+                        <option value="">Todas</option>
+                        <option value="roupas">Roupas</option>
+                        <option value="moveis">Móveis</option>
+                        <option value="eletronicos">Eletrônicos</option>
+                        <option value="alimentos">Alimentos</option>
+                        <option value="livros">Livros</option>
+                        <option value="brinquedos">Brinquedos</option>
+                        <option value="outros">Outros</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Cidade</label>
+                    <input type="text" id="filtroCidade" placeholder="Digite a cidade">
+                </div>
+                <div class="filter-group">
+                    <label>Estado</label>
+                    <input type="text" id="filtroEstado" placeholder="UF" maxlength="2">
+                </div>
+                <div class="filter-group">
+                    <label>Ordenar</label>
+                    <select id="filtroOrdenar">
+                        <option value="recente">Mais recentes</option>
+                        <option value="antiga">Mais antigas</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid de Cards -->
+        <div id="cardsContainer" class="cards-grid"></div>
+    </div>
+
+    <!-- Modal Nova/Editar Doação -->
+    <div id="modalDoacao" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Nova Doação</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="formDoacao" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label>Título *</label>
+                    <input type="text" id="titulo" name="titulo" required>
+                </div>
+                <div class="form-group">
+                    <label>Descrição *</label>
+                    <textarea id="descricao" name="descricao" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Categoria *</label>
+                    <select id="categoria" name="categoria" required>
+                        <option value="">Selecione...</option>
+                        <option value="roupas">Roupas</option>
+                        <option value="moveis">Móveis</option>
+                        <option value="eletronicos">Eletrônicos</option>
+                        <option value="alimentos">Alimentos</option>
+                        <option value="livros">Livros</option>
+                        <option value="brinquedos">Brinquedos</option>
+                        <option value="outros">Outros</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Localização *</label>
+                    <input type="text" id="localizacao" name="localizacao" placeholder="Endereço de retirada" required>
+                </div>
+                <div class="form-group">
+                    <label>Cidade *</label>
+                    <input type="text" id="cidade" name="cidade" required>
+                </div>
+                <div class="form-group">
+                    <label>Estado *</label>
+                    <input type="text" id="estado" name="estado" placeholder="UF" maxlength="2" required>
+                </div>
+                <div class="form-group">
+                    <label>Foto</label>
+                    <input type="file" id="foto" name="foto" accept="image/*">
+                </div>
+                <button type="submit" class="btn-submit">Salvar Doação</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Solicitar Doação -->
+    <div id="modalSolicitar" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Solicitar Doação</h2>
+                <button class="close-btn" onclick="closeModalSolicitar()">&times;</button>
+            </div>
+            <form id="formSolicitar">
+                <input type="hidden" id="doacaoIdSolicitar">
+                <div class="form-group">
+                    <label>Motivo da Solicitação *</label>
+                    <textarea id="motivo" name="motivo" placeholder="Explique por que você precisa desta doação..." required></textarea>
+                </div>
+                <button type="submit" class="btn-submit">Enviar Solicitação</button>
+            </form>
+        </div>
+    </div>
+
+        <!-- Modal Editar Perfil -->
+    <div id="modalPerfil" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Editar Perfil</h2>
+                <button class="close-btn" onclick="closeModalPerfil()">&times;</button>
+            </div>
+
+            <form id="formPerfil">
+
+                <div class="form-group">
+                    <label>Nome *</label>
+                    <input type="text" id="perfilNome" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="perfilEmail" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Telefone *</label>
+                    <input type="text" id="perfilTelefone" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Endereço *</label>
+                    <input type="text" id="perfilEndereco" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Cidade *</label>
+                    <input type="text" id="perfilCidade" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Estado *</label>
+                    <input type="text" id="perfilEstado" maxlength="2" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Nova Senha (opcional)</label>
+                    <input type="password" id="perfilSenha">
+                </div>
+
+                <button type="submit" class="btn-submit">Salvar Perfil</button>
+            </form>
+        </div>
+    </div>
+
+
+    <script>
+        const API_URL = 'http://localhost:3000';
+        let currentTab = 'doacoes';
+        let editingId = null;
+
+        // Verifica autenticação
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'index.html';
+            }
+            return token;
+        }
+                // Abrir modal de perfil
+        async function openModalPerfil() {
+            const token = checkAuth();
+            const userId = localStorage.getItem('userId');
+
+            try {
+                const res = await fetch(`${API_URL}/usuarios/${userId}`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+
+                const user = await res.json();
+
+                document.getElementById('perfilNome').value = user.nome || '';
+                document.getElementById('perfilEmail').value = user.email || '';
+                document.getElementById('perfilTelefone').value = user.telefone || '';
+                document.getElementById('perfilEndereco').value = user.endereco || '';
+                document.getElementById('perfilCidade').value = user.cidade || '';
+                document.getElementById('perfilEstado').value = user.estado || '';
+
+                document.getElementById('perfilSenha').value = '';
+
+                document.getElementById('modalPerfil').classList.add('active');
+
+            } catch (err) {
+                alert("Erro ao carregar perfil");
+            }
+        }
+
+
+        function closeModalPerfil() {
+            document.getElementById('modalPerfil').classList.remove('active');
+        }
+
+        // Salvar alterações do perfil
+        document.getElementById('formPerfil').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const token = checkAuth();
+            const userId = localStorage.getItem('userId');
+
+            const dados = {
+                nome: document.getElementById('perfilNome').value,
+                email: document.getElementById('perfilEmail').value,
+                telefone: document.getElementById('perfilTelefone').value,
+                endereco: document.getElementById('perfilEndereco').value,
+                cidade: document.getElementById('perfilCidade').value,
+                estado: document.getElementById('perfilEstado').value
+            };
+
+            const senha = document.getElementById('perfilSenha').value;
+            if (senha.trim() !== "") dados.senha = senha;
+
+            try {
+                const response = await fetch(`${API_URL}/usuarios/${userId}`, {
+                    method: "PUT",
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(dados)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert("Perfil atualizado com sucesso!");
+                    closeModalPerfil();
+                } else {
+                    alert(result.message || "Erro ao atualizar perfil");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Erro ao atualizar o perfil");
+            }
+        });
+
+
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        // Carregar dados
+        async function loadData() {
+            const token = checkAuth();
+            
+            if (currentTab === 'doacoes') {
+                await loadDoacoes();
+            } else if (currentTab === 'minhas') {
+                await loadMinhasDoacoes();
+            } else if (currentTab === 'solicitacoes') {
+                await loadSolicitacoes();
+            }
+        }
+
+        // Carregar doações disponíveis
+        async function loadDoacoes() {
+            const token = checkAuth();
+            const container = document.getElementById('cardsContainer');
+            
+            try {
+                let url = `${API_URL}/doacoes`;
+                
+                // Aplicar filtros
+                const categoria = document.getElementById('filtroCategoria').value;
+                const cidade = document.getElementById('filtroCidade').value;
+                const estado = document.getElementById('filtroEstado').value;
+                const ordenar = document.getElementById('filtroOrdenar').value;
+                
+                if (categoria || cidade || estado || ordenar) {
+                    const params = new URLSearchParams();
+                    if (categoria) params.append('categoria', categoria);
+                    if (cidade) params.append('cidade', cidade);
+                    if (estado) params.append('estado', estado);
+                    if (ordenar) params.append('ordenar', ordenar);
+                    url = `${API_URL}/doacoes/filtrar?${params}`;
+                }
+                
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const doacoes = await response.json();
+                
+                if (doacoes.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><h3>Nenhuma doação disponível</h3><p>Seja o primeiro a doar!</p></div>';
+                    return;
+                }
+                
+                container.innerHTML = doacoes.map(doacao => `
+                    <div class="card">
+                        ${doacao.foto ? `<img src="${doacao.foto}" class="card-img" alt="${doacao.titulo}">` : '<div class="card-img"></div>'}
+                        <div class="card-body">
+                            <span class="card-category">${doacao.categoria}</span>
+                            <h3 class="card-title">${doacao.titulo}</h3>
+                            <p class="card-description">${doacao.descricao}</p>
+                            <p class="card-location">📍 ${doacao.cidade}, ${doacao.estado}</p>
+                            <div class="card-actions">
+                                <button class="btn-small btn-primary" onclick="solicitarDoacao('${doacao.id}')">Solicitar</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Erro:', error);
+                container.innerHTML = '<div class="empty-state"><h3>Erro ao carregar doações</h3></div>';
+            }
+        }
+
+        // Carregar minhas doações
+        async function loadMinhasDoacoes() {
+            const token = checkAuth();
+            const container = document.getElementById('cardsContainer');
+            
+            try {
+                const response = await fetch(`${API_URL}/api/doacoes/historico`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const doacoes = await response.json();
+                
+                if (doacoes.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><h3>Você ainda não cadastrou doações</h3><p>Clique em "Nova Doação" para começar</p></div>';
+                    return;
+                }
+                
+                container.innerHTML = doacoes.map(doacao => `
+                    <div class="card">
+                        ${doacao.foto ? `<img src="${doacao.foto}" class="card-img" alt="${doacao.titulo}">` : '<div class="card-img"></div>'}
+                        <div class="card-body">
+                            <span class="card-category">${doacao.categoria}</span>
+                            <h3 class="card-title">${doacao.titulo}</h3>
+                            <p class="card-description">${doacao.descricao}</p>
+                            <p class="card-location">📍 ${doacao.cidade}, ${doacao.estado}</p>
+                            <div class="card-actions">
+                                <button class="btn-small btn-secondary" onclick="editarDoacao('${doacao.id}', ${JSON.stringify(doacao).replace(/"/g, '&quot;')})">Editar</button>
+                                <button class="btn-small btn-danger" onclick="excluirDoacao('${doacao.id}')">Excluir</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Erro:', error);
+                container.innerHTML = '<div class="empty-state"><h3>Erro ao carregar suas doações</h3></div>';
+            }
+        }
+
+        async function loadSolicitacoes() {
+            const token = checkAuth();
+            const container = document.getElementById('cardsContainer');
+            const cargo = localStorage.getItem('cargo');
+
+            let url;
+
+            // RECEPTOR → pega solicitações feitas
+            if (cargo === "receptor") {
+                url = `${API_URL}/solicitacoes/historico`;
+            }
+
+            // DOADOR → pega solicitações recebidas
+            if (cargo === "doador") {
+                url = `${API_URL}/solicitacoes/recebidas`;
+            }
+
+            try {
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const solicitacoes = await response.json();
+
+                if (!Array.isArray(solicitacoes) || solicitacoes.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📝</div>
+                            <h3>Nenhuma solicitação encontrada</h3>
+                        </div>`;
+                    return;
+                }
+
+                container.innerHTML = solicitacoes.map(sol => `
+                    <div class="card">
+                        ${sol.doacao?.foto ? `<img src="${sol.doacao.foto}" class="card-img">` : '<div class="card-img"></div>'}
+                        <div class="card-body">
+                            <span class="card-category">${sol.status}</span>
+                            <h3 class="card-title">${sol.doacao?.titulo || 'Doação removida'}</h3>
+
+                            <p class="card-description"><strong>Motivo:</strong> ${sol.motivo}</p>
+
+                            ${cargo === "doador" && sol.receptor ? `
+                                <p><strong>Receptor:</strong> ${sol.receptor.nome}</p>
+                                <p><strong>Email:</strong> ${sol.receptor.email}</p>
+                                <p><strong>Telefone:</strong> ${sol.receptor.telefone}</p>
+                            ` : ''}
+
+                            ${sol.doacao ? `<p class="card-location">📍 ${sol.doacao.cidade}, ${sol.doacao.estado}</p>` : ''}
+
+                            <!-- 🔥 BOTÕES DE AÇÃO PARA DOADOR -->
+                            ${cargo === "doador" && sol.status === "pendente" ? `
+                                <div class="solicitacao-acoes">
+                                    <button class="btn-aceitar" onclick="aceitarSolicitacao('${sol.id}')">Aceitar</button>
+                                    <button class="btn-recusar" onclick="recusarSolicitacao('${sol.id}')">Recusar</button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Erro:', error);
+                container.innerHTML = '<div class="empty-state"><h3>Erro ao carregar solicitações</h3></div>';
+            }
+        }
+
+        // Mudar tab
+        function showTab(tab) {
+            currentTab = tab;
+            document.getElementById('filtrosSection').style.display = tab === 'doacoes' ? 'block' : 'none';
+            loadData();
+        }
+
+        // Modal functions
+        function openModal(type) {
+            editingId = null;
+            document.getElementById('modalTitle').textContent = 'Nova Doação';
+            document.getElementById('formDoacao').reset();
+            document.getElementById('modalDoacao').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modalDoacao').classList.remove('active');
+            editingId = null;
+        }
+
+        function closeModalSolicitar() {
+            document.getElementById('modalSolicitar').classList.remove('active');
+        }
+
+        // Editar doação
+        function editarDoacao(id, doacao) {
+            editingId = id;
+            document.getElementById('modalTitle').textContent = 'Editar Doação';
+            document.getElementById('titulo').value = doacao.titulo;
+            document.getElementById('descricao').value = doacao.descricao;
+            document.getElementById('categoria').value = doacao.categoria;
+            document.getElementById('localizacao').value = doacao.localizacao;
+            document.getElementById('cidade').value = doacao.cidade;
+            document.getElementById('estado').value = doacao.estado;
+            document.getElementById('modalDoacao').classList.add('active');
+        }
+
+        // Excluir doação
+        async function excluirDoacao(id) {
+            if (!confirm('Tem certeza que deseja excluir esta doação?')) return;
+            
+            const token = checkAuth();
+            
+            try {
+                const response = await fetch(`${API_URL}/doacoes/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    alert('Doação excluída com sucesso!');
+                    loadData();
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao excluir doação');
+            }
+        }
+
+        // Solicitar doação
+        function solicitarDoacao(id) {
+            document.getElementById('doacaoIdSolicitar').value = id;
+            document.getElementById('formSolicitar').reset();
+            document.getElementById('modalSolicitar').classList.add('active');
+        }
+
+        // Form handlers
+        document.getElementById('formDoacao').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const token = checkAuth();
+            
+            const formData = new FormData();
+            formData.append('titulo', document.getElementById('titulo').value);
+            formData.append('descricao', document.getElementById('descricao').value);
+            formData.append('categoria', document.getElementById('categoria').value);
+            formData.append('localizacao', document.getElementById('localizacao').value);
+            formData.append('cidade', document.getElementById('cidade').value);
+            formData.append('estado', document.getElementById('estado').value);
+            
+            const fotoInput = document.getElementById('foto');
+            if (fotoInput.files[0]) {
+                formData.append('foto', fotoInput.files[0]);
+            }
+            
+            try {
+                const url = editingId ? `${API_URL}/doacoes/${editingId}` : `${API_URL}/doacoes`;
+                const method = editingId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    alert(editingId ? 'Doação atualizada!' : 'Doação cadastrada!');
+                    closeModal();
+                    showTab('minhas');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao salvar doação');
+            }
+        });
+
+        document.getElementById('formSolicitar').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const token = checkAuth();
+            
+            const data = {
+                doacao_id: document.getElementById('doacaoIdSolicitar').value,
+                motivo: document.getElementById('motivo').value
+            };
+            
+            try {
+                const response = await fetch(`${API_URL}/solicitacoes`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    alert('Solicitação enviada com sucesso!');
+                    closeModalSolicitar();
+                    showTab('solicitacoes');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao enviar solicitação');
+            }
+        });
+
+        async function aceitarSolicitacao(id) {
+            const token = localStorage.getItem('token');
+
+            const response = await fetch(`${API_URL}/solicitacoes/${id}/aceitar`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const data = await response.json();
+            alert(data.message);
+
+            // 🔥 Abrir WhatsApp automaticamente ao aceitar
+            if (data.receptor?.telefone) {
+                const telefone = data.receptor.telefone.replace(/\D/g, '');
+                const msg = encodeURIComponent(
+                    `Olá, ${data.receptor.nome}! 😊\nSua solicitação de doação foi *ACEITA*!`
+                );
+
+                window.open(`https://wa.me/55${telefone}?text=${msg}`, "_blank");
+            }
+
+            loadSolicitacoes();
+        }
+
+
+        async function recusarSolicitacao(id) {
+            const token = localStorage.getItem('token');
+
+            const response = await fetch(`${API_URL}/solicitacoes/${id}/recusar`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const data = await response.json();
+            alert(data.message);
+
+            // 🔥 Abrir WhatsApp automaticamente ao recusar
+            if (data.receptor?.telefone) {
+                const telefone = data.receptor.telefone.replace(/\D/g, '');
+                const msg = encodeURIComponent(
+                    `Olá, ${data.receptor.nome}! Infelizmente sua solicitação foi *RECUSADA*. 😕`
+                );
+
+                window.open(`https://wa.me/55${telefone}?text=${msg}`, "_blank");
+            }
+
+            loadSolicitacoes();
+        }
+
+        document.getElementById('filtroCategoria').addEventListener('change', loadData);
+        document.getElementById('filtroCidade').addEventListener('change', loadData);
+        document.getElementById('filtroEstado').addEventListener('change', loadData);
+        document.getElementById('filtroOrdenar').addEventListener('change', loadData);
+
+        function aplicarPermissoes() {
+            const cargo = localStorage.getItem('cargo');
+
+            const explorarBtn = document.querySelector('button[onclick="showTab(\'doacoes\')"]');
+            const minhasBtn = document.querySelector('button[onclick="showTab(\'minhas\')"]');
+            const novaBtn = document.querySelector('button[onclick="openModal(\'nova\')"]');
+
+            // ---- Permissões para DOADOR ----
+            if (cargo === "doador") {
+                if (explorarBtn) explorarBtn.style.display = "none";
+                document.getElementById('filtrosSection').style.display = "none";
+
+                if (currentTab === "doacoes") {
+                    showTab('minhas');
+                }
+            }
+
+            // ---- Permissões para RECEPTOR ----
+            if (cargo === "receptor") {
+                if (minhasBtn) minhasBtn.style.display = "none";
+                if (novaBtn) novaBtn.style.display = "none";
+
+                // se por acaso tentar ir para "minhas", redireciona para explorar
+                if (currentTab === "minhas") {
+                    showTab('doacoes');
+                }
+            }
+        }
+        // Inicializar
+        loadData();
+        aplicarPermissoes();
+       
+    </script>
+</body>
+</html>

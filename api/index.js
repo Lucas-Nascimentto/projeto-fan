@@ -11,16 +11,10 @@ const autenticarToken = require('./middlewares/autenticarToken');
 
 const app = express();
 app.use(express.json());
-// const corsOptions = {
-//   origin: '*',
-//   methods: ['GET','POST','PUT','DELETE'],
-//   allowedHeaders: ['Content-Type', 'Authorization']
-// };
-// app.use(cors(corsOptions));
+app.use(cors());
 
-// ✅ Configura o multer para armazenar em memória (compatível com Vercel)
+// Configura o multer para armazenar em memória (compatível com Vercel)
 const upload = multer({ storage: multer.memoryStorage() });
-
 // Função auxiliar para enviar buffer ao Cloudinary
 async function uploadToCloudinary(buffer) {
   return new Promise((resolve, reject) => {
@@ -34,8 +28,7 @@ async function uploadToCloudinary(buffer) {
     streamifier.createReadStream(buffer).pipe(uploadStream);
   });
 }
-//ok
-// ✅ Cadastro de usuário
+// Cadastro de usuário
 app.post('/signup', async (req, res) => {
   const { cargo, nome, email, telefone, identidade, endereco, cidade, estado, cep, senha } = req.body;
 
@@ -61,8 +54,7 @@ app.post('/signup', async (req, res) => {
     res.status(500).json({ message: 'Erro ao cadastrar usuário' });
   }
 });
-//ok
-// ✅ Login
+// Login
 app.post('/login', async (req, res) => {
   const { email, senha } = req.body;
 
@@ -71,23 +63,63 @@ app.post('/login', async (req, res) => {
 
   try {
     const snapshot = await db.collection('users').where('email', '==', email).get();
-    if (snapshot.empty) return res.status(401).json({ message: 'Usuário não encontrado' });
+    if (snapshot.empty)
+      return res.status(401).json({ message: 'Usuário não encontrado' });
 
     const userDoc = snapshot.docs[0];
     const user = userDoc.data();
 
     const match = await bcrypt.compare(senha, user.password_hash);
-    if (!match) return res.status(401).json({ message: 'Senha incorreta' });
+    if (!match)
+      return res.status(401).json({ message: 'Senha incorreta' });
 
-    const token = jwt.sign({ id: userDoc.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.json({ message: 'Login bem-sucedido', token });
+    const token = jwt.sign(
+      { id: userDoc.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    res.json({
+      message: 'Login bem-sucedido',
+      token,
+      user: {
+        id: userDoc.id,
+        nome: user.nome,
+        email: user.email,
+        cargo: user.cargo   
+      }
+    });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Erro no servidor' });
   }
 });
-//ok
-// ✅ Atualizar perfil
+// Buscar perfil do usuário
+app.get('/usuarios/:id', autenticarToken, async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    const userRef = db.collection('users').doc(userId);
+    const doc = await userRef.get();
+
+    if (!doc.exists)
+      return res.status(404).json({ message: 'Usuário não encontrado' });
+
+    const user = doc.data();
+
+    res.json({
+      id: userId,
+      nome: user.nome,
+      email: user.email
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro no servidor ao buscar perfil' });
+  }
+});
+// Atualizar perfil
 app.put('/usuarios/:id', autenticarToken, async (req, res) => {
   const userId = req.params.id;
   const dados = req.body;
@@ -102,6 +134,9 @@ app.put('/usuarios/:id', autenticarToken, async (req, res) => {
       dados.password_hash = await bcrypt.hash(dados.senha, 10);
       delete dados.senha;
     }
+    
+    if (dados.cargo) delete dados.cargo;
+
 
     await userRef.update(dados);
     res.json({ message: 'Perfil atualizado com sucesso!' });
@@ -110,8 +145,7 @@ app.put('/usuarios/:id', autenticarToken, async (req, res) => {
     res.status(500).json({ message: 'Erro ao atualizar perfil' });
   }
 });
-//ok
-// ✅ Cadastro de doação (com Cloudinary e memória)
+// Cadastro de doação (com Cloudinary e memória)
 app.post('/doacoes', autenticarToken, upload.single('foto'), async (req, res) => {
   const { titulo, descricao, categoria, localizacao, cidade, estado } = req.body;
   const usuario_id = req.user.id;
@@ -145,8 +179,7 @@ app.post('/doacoes', autenticarToken, upload.single('foto'), async (req, res) =>
     res.status(500).json({ message: 'Erro ao cadastrar doação' });
   }
 });
-//ok
-// ✅ Histórico de doações
+// Histórico de doações
 app.get('/api/doacoes/historico', autenticarToken, async (req, res) => {
   const usuario_id = req.user.id;
 
@@ -167,8 +200,7 @@ app.get('/api/doacoes/historico', autenticarToken, async (req, res) => {
     res.status(500).json({ message: 'Erro ao buscar histórico de doações' });
   }
 });
-//ok
-// ✅ Excluir doação
+// Excluir doação
 app.delete('/doacoes/:id', autenticarToken, async (req, res) => {
   const doacaoId = req.params.id;
   const usuario_id = req.user.id;
@@ -193,8 +225,7 @@ app.delete('/doacoes/:id', autenticarToken, async (req, res) => {
     res.status(500).json({ message: 'Erro ao excluir doação' });
   }
 });
-//ok
-// ✅ Editar doação
+// Editar doação
 app.put('/doacoes/:id', autenticarToken, upload.single('foto'), async (req, res) => {
   const doacaoId = req.params.id;
   const usuario_id = req.user.id;
@@ -212,7 +243,6 @@ app.put('/doacoes/:id', autenticarToken, upload.single('foto'), async (req, res)
     if (doacao.usuario_id !== usuario_id) {
       return res.status(403).json({ message: 'Você não tem permissão para editar esta doação' });
     }
-
     // Mantém os valores atuais caso não sejam enviados no body
     const novoCidade = (typeof cidade !== 'undefined' && cidade !== null) ? cidade : doacao.cidade || null;
     const novoEstado = (typeof estado !== 'undefined' && estado !== null) ? estado : doacao.estado || null;
@@ -241,8 +271,7 @@ app.put('/doacoes/:id', autenticarToken, upload.single('foto'), async (req, res)
     res.status(500).json({ message: 'Erro ao atualizar doação' });
   }
 });
-//ok
-// 📌 Solicitar uma doação
+// Solicitar uma doação
 app.post('/solicitacoes', autenticarToken, async (req, res) => {
   const { doacao_id, motivo } = req.body;
   const usuario_id = req.user.id;
@@ -258,7 +287,6 @@ app.post('/solicitacoes', autenticarToken, async (req, res) => {
     if (!doc.exists) {
       return res.status(404).json({ message: 'Doação não encontrada' });
     }
-
     // salva solicitação
     await db.collection('solicitacoes').add({
       doacao_id,
@@ -274,8 +302,7 @@ app.post('/solicitacoes', autenticarToken, async (req, res) => {
     res.status(500).json({ message: 'Erro ao solicitar doação' });
   }
 });
-//ok
-// 📌 Histórico de solicitações do receptor
+// Histórico de solicitações do receptor
 app.get('/solicitacoes/historico', autenticarToken, async (req, res) => {
   const usuario_id = req.user.id;
 
@@ -289,7 +316,6 @@ app.get('/solicitacoes/historico', autenticarToken, async (req, res) => {
 
     for (const doc of snapshot.docs) {
       const data = doc.data();
-
       // busca dados da doação referenciada
       const doacaoDoc = await db.collection('doacoes').doc(data.doacao_id).get();
 
@@ -306,8 +332,7 @@ app.get('/solicitacoes/historico', autenticarToken, async (req, res) => {
     res.status(500).json({ message: 'Erro ao buscar histórico de solicitações' });
   }
 });
-//ok
-// 📌 Listar todas as doações disponíveis
+// Listar todas as doações disponíveis
 app.get('/doacoes', autenticarToken, async (req, res) => {
   const usuario_id = req.user.id;
 
@@ -329,8 +354,7 @@ app.get('/doacoes', autenticarToken, async (req, res) => {
     res.status(500).json({ message: 'Erro ao buscar doações disponíveis' });
   }
 });
-//ok
-// 📌 Filtrar e ordenar doações
+// iltrar e ordenar doações
 app.get('/doacoes/filtrar', autenticarToken, async (req, res) => {
   const { categoria, cidade, estado, ordenar } = req.query;
   const usuario_id = req.user.id;
@@ -366,11 +390,115 @@ app.get('/doacoes/filtrar', autenticarToken, async (req, res) => {
   }
 });
 
+// Solicitações recebidas pelo DOADOR (para as suas doações)
+app.get('/solicitacoes/recebidas', autenticarToken, async (req, res) => {
+  const doador_id = req.user.id;
 
+  try {
+    // 1. Buscar todas as doações cadastradas pelo doador
+    const doacoesSnapshot = await db.collection('doacoes')
+      .where('usuario_id', '==', doador_id)
+      .get();
 
-// ✅ Inicialização do servidor (local ou Vercel)
+    const doacoesIds = doacoesSnapshot.docs.map(doc => doc.id);
+
+    if (doacoesIds.length === 0) {
+      return res.json([]); // Doador não registrou doações
+    }
+
+    // 2. Buscar solicitações relacionadas a essas doações
+    const solicitacoesSnapshot = await db.collection('solicitacoes')
+      .where('doacao_id', 'in', doacoesIds)
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    const solicitacoes = [];
+
+    for (const doc of solicitacoesSnapshot.docs) {
+      const data = doc.data();
+
+      const doacaoDoc = await db.collection('doacoes').doc(data.doacao_id).get();
+      const receptorDoc = await db.collection('users').doc(data.receptor_id).get();
+
+      solicitacoes.push({
+        id: doc.id,
+        ...data,
+        doacao: doacaoDoc.exists ? doacaoDoc.data() : null,
+        receptor: receptorDoc.exists ? receptorDoc.data() : null
+      });
+    }
+
+    res.json(solicitacoes);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao buscar solicitações recebidas' });
+  }
+});
+
+// Aceitar solicitação
+app.put('/solicitacoes/:id/aceitar', autenticarToken, async (req, res) => {
+  try {
+    const solicId = req.params.id;
+    const solicRef = db.collection('solicitacoes').doc(solicId);
+    const solicDoc = await solicRef.get();
+
+    if (!solicDoc.exists) return res.status(404).json({ message: 'Solicitação não encontrada' });
+
+    await solicRef.update({ status: 'aceita' });
+
+    const dataSolic = solicDoc.data();
+    const userRef = db.collection('users').doc(dataSolic.receptor_id);
+    const userDoc = await userRef.get();
+
+    const receptor = userDoc.data();
+
+    res.json({
+      message: 'Solicitação aceita!',
+      receptor: {
+        nome: receptor.nome,
+        telefone: receptor.telefone,
+        email: receptor.email
+      }
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao aceitar solicitação' });
+  }
+});
+// Recusar solicitação
+app.put('/solicitacoes/:id/recusar', autenticarToken, async (req, res) => {
+  try {
+    const solicId = req.params.id;
+    const solicRef = db.collection('solicitacoes').doc(solicId);
+    const solicDoc = await solicRef.get();
+
+    if (!solicDoc.exists) return res.status(404).json({ message: 'Solicitação não encontrada' });
+
+    await solicRef.update({ status: 'recusada' });
+
+    const dataSolic = solicDoc.data();
+    const userRef = db.collection('users').doc(dataSolic.receptor_id);
+    const userDoc = await userRef.get();
+
+    const receptor = userDoc.data();
+
+    res.json({
+      message: 'Solicitação recusada!',
+      receptor: {
+        nome: receptor.nome,
+        telefone: receptor.telefone,
+        email: receptor.email
+      }
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao recusar solicitação' });
+  }
+});
+
 app.listen(process.env.PORT || 3000, () => {
   console.log(`🚀 Servidor rodando na porta ${process.env.PORT || 3000}`);
 });
 
-// module.exports = app; // obrigatório para Vercel

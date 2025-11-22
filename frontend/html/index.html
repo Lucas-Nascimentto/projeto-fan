@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Doações</title>
+    <link rel="stylesheet" href="../css/styleIndex.css">
+</head>
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <h1>💝 DoaSolidário</h1>
+            <p>Conectando pessoas através da generosidade. Doe o que você não precisa mais e ajude quem realmente necessita.</p>
+        </div>
+        <div class="right-panel">
+            <h2 class="form-title">Entrar</h2>
+            <p class="form-subtitle">Acesse sua conta para continuar</p>
+            
+            <div id="alert" class="alert"></div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="senha">Senha</label>
+                    <input type="password" id="senha" name="senha" required>
+                </div>
+                <button type="submit" class="btn">Entrar</button>
+            </form>
+
+            <div class="switch-form">
+                Não tem uma conta? <a href="cadastro.html">Cadastre-se</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000';
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const senha = document.getElementById('senha').value;
+            const alertDiv = document.getElementById('alert');
+
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, senha })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('userId', data.user.id);
+                    localStorage.setItem('cargo', data.user.cargo);
+
+                    // Mensagem de sucesso
+                    alertDiv.className = 'alert success';
+                    alertDiv.textContent = 'Login realizado com sucesso! Redirecionando...';
+                    alertDiv.style.display = 'block';
+
+                    // Redireciona
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+
+                } else {
+                    alertDiv.className = 'alert error';
+                    alertDiv.textContent = data.message || 'Erro ao fazer login';
+                    alertDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alertDiv.className = 'alert error';
+                alertDiv.textContent = 'Erro ao conectar com o servidor';
+                alertDiv.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
